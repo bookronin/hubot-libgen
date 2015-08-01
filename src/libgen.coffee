@@ -6,7 +6,8 @@
 #
 # Commands:
 #   hubot libgen <query> - search libgen for <query>
-#   hubot libgen <query> in <field> - restrict search to specified field (title|author)
+#   hubot libgen <query> in:<field> - restrict search to specified field (title|author)
+#   hubot libgen <query> limit:<num> - limit search to <num> results
 #
 # Notes:
 #   <optional notes required for the script>
@@ -16,26 +17,16 @@
 
 
 libgen = require 'libgen'
-
-searchableFields = -> [
-  'title',
-  'author'
-]
-
-displayedInfo = -> [
-  displayTitleAuthorInfo
-  displayPublishingInfo
-  displayDownloadLink
-  displayInfoLink
-]
-
-searchRegExp = ->
-  new RegExp 'libgen (.*?)( in (' + (searchableFields().join '|') + '))?$', 'i'
+util = require 'util'
 
 displayResult = (result) ->
-  ((for info in displayedInfo()
-    if typeof info == 'function' then info result else "#{result[info]}"
-  ).join "\n")
+  fns = [
+    displayTitleAuthorInfo
+    displayPublishingInfo
+    displayDownloadLink
+    displayInfoLink
+  ]
+  (fn result for fn in fns).join "\n"
 
 bytesToSize = (bytes) ->
   sizes = ['bytes', 'kb', 'mb', 'gb', 'tb']
@@ -57,8 +48,16 @@ displayTitleAuthorInfo = (result) ->
 displayPublishingInfo = (result) ->
   "#{result.Publisher || '<Publisher Unknown>'}, #{result.Year || '<Year Unknown>'}"
 
-libgenQuery = (query, field, msg) ->
-  libgen.search { query: query, search_in: field, mirror: 'http://gen.lib.rus.ec' }, (err,data) ->
+libgenQuery = (msg) ->
+  query = msg.match[1]
+  search_in = msg.message.text.match(/(?:in:\s*(title|author))/i)?[1]
+  count = msg.message.text.match(/(?:limit:\s*(\d+))/i)?[1]
+  libgen.search {
+    query: query
+    search_in: search_in
+    count: count
+    mirror: 'http://gen.lib.rus.ec'
+  }, (err,data) ->
     if typeof err isnt "undefined" and err?
       msg.send err
       return
@@ -70,5 +69,5 @@ libgenQuery = (query, field, msg) ->
   "Request transmitted, waiting for results."
 
 module.exports = (robot) ->
-  robot.respond searchRegExp(), (msg) ->
-    msg.reply libgenQuery msg.match[1], msg.match[3], msg
+  robot.respond /libgen (.*(?=\s+in:)|.*(?=\s+limit:)|.*)/i, (msg) ->
+    msg.reply libgenQuery msg

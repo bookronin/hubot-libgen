@@ -23,6 +23,7 @@ displayResult = (result) ->
   fns = [
     displayTitleAuthorInfo
     displayPublishingInfo
+    displayLanguageInfo
     displayDownloadLink
     displayInfoLink
   ]
@@ -42,6 +43,9 @@ displayDownloadLink = (result) ->
 displayInfoLink = (result) ->
   "http://libgen.io/book/index.php?md5=#{result.MD5}"
 
+displayLanguageInfo = (result) ->
+  "Language: #{result.Language}"
+
 displayTitleAuthorInfo = (result) ->
   "“#{result.Title}” by #{result.Author || '<Author Unknown>'}"
 
@@ -49,13 +53,10 @@ displayPublishingInfo = (result) ->
   "#{result.Publisher || '<Publisher Unknown>'}, #{result.Year || '<Year Unknown>'}"
 
 libgenQuery = (msg) ->
-  query = msg.match[1]
-  search_in = msg.message.text.match(/(?:in:\s*(title|author))/i)?[1]
-  count = msg.message.text.match(/(?:limit:\s*(\d+))/i)?[1]
   libgen.search {
-    query: query
-    search_in: search_in
-    count: count
+    query: msg.match[1] || msg.match[4]
+    search_in: msg.match[2] || msg.match[6]
+    count: msg.match[3] || msg.match[5]
     mirror: 'http://gen.lib.rus.ec'
   }, (err,data) ->
     if typeof err isnt "undefined" and err?
@@ -69,5 +70,8 @@ libgenQuery = (msg) ->
   "Request transmitted, waiting for results."
 
 module.exports = (robot) ->
-  robot.respond /libgen (.*(?=\s+in:)|.*(?=\s+limit:)|.*)/i, (msg) ->
+  robot.respond ///libgen (?:
+      ([\w\s]*(?!limit:)(?=\s*in:))(?:\s*in:\s*(author|title))?(?:\s*limit:\s*(\d+))?  #‘in’ first
+      |([\w\s]*(?!in:)(?=\s*limit:))(?:\s*limit:\s*(\d+))?(?:\s*in:\s*(author|title))? #‘in’ second
+    )///i, (msg) ->
     msg.reply libgenQuery msg

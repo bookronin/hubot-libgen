@@ -45,7 +45,8 @@ bytesToSize = (bytes) ->
 
 displayDownloadLink = (result) -> 
   info = "Download: http://libgen.io/get.php?md5=#{result.MD5}"
-  info + " (#{result.Extension}, #{bytesToSize(result.Filesize)})"
+  info += " (#{result.Extension}, #{bytesToSize(result.Filesize)})"
+  info
 
 displayInfoLink = (result) ->
   "http://libgen.io/book/index.php?md5=#{result.MD5}"

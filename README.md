@@ -21,7 +21,7 @@ Then add **hubot-libgen** to your `external-scripts.json`:
 ## Sample Interaction
 
 ```
-user1>> hubot libgen <query> [in:<title|author|series|periodical|publisher|year|identifier|md5|extension>]
-hubot>> Request transmitted, waiting for results.(Results list)
+user1>> hubot libgen <query> [in:<title|author>]
+hubot>> Request transmitted, waiting for results.
 hubot>> (Results list)
 ```

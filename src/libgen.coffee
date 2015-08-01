@@ -5,8 +5,8 @@
 #   LIST_OF_ENV_VARS_TO_SET
 #
 # Commands:
-#   hubot hello - <what the respond trigger does>
-#   orly - <what the hear trigger does>
+#   hubot libgen <query> - search libgen for <query>
+#   hubot libgen <query> in <field> - restrict search to specified field (title|author)
 #
 # Notes:
 #   <optional notes required for the script>
@@ -19,20 +19,14 @@ libgen = require 'libgen'
 
 searchableFields = -> [
   'title',
-  'author',
-  'series',
-  'periodical',
-  'publisher',
-  'year',
-  'identifier',
-  'md5',
-  'extension'
+  'author'
 ]
 
 displayedInfo = -> [
-  'Title',
-  'Author',
+  displayTitleAuthorInfo
+  displayPublishingInfo
   displayDownloadLink
+  displayInfoLink
 ]
 
 searchRegExp = ->
@@ -40,11 +34,27 @@ searchRegExp = ->
 
 displayResult = (result) ->
   ((for info in displayedInfo()
-    if typeof info == 'string' then "#{result[info]}" else info result
-  ).join "\n") + "\n"
+    if typeof info == 'function' then info result else "#{result[info]}"
+  ).join "\n")
+
+bytesToSize = (bytes) ->
+  sizes = ['bytes', 'kb', 'mb', 'gb', 'tb']
+  return '0 Byte' if bytes == 0
+  i = parseInt ((Math.floor Math.log bytes) / Math.log 1024)
+  "#{Math.round (bytes / (Math.pow 1024, i)), 2}#{sizes[i]}"
 
 displayDownloadLink = (result) -> 
-  'Download: ' + 'http://gen.lib.rus.ec/book/index.php?md5=' + result.MD5.toLowerCase()
+  info = "Download: http://libgen.io/get.php?md5=#{result.MD5}"
+  info + " (#{result.Extension}, #{bytesToSize(result.Filesize)})"
+
+displayInfoLink = (result) ->
+  "http://libgen.io/book/index.php?md5=#{result.MD5}"
+
+displayTitleAuthorInfo = (result) ->
+  "“#{result.Title}” by #{result.Author || '<Author Unknown>'}"
+
+displayPublishingInfo = (result) ->
+  "#{result.Publisher || '<Publisher Unknown>'}, #{result.Year || '<Year Unknown>'}"
 
 libgenQuery = (query, field, msg) ->
   libgen.search { query: query, search_in: field, mirror: 'http://gen.lib.rus.ec' }, (err,data) ->
@@ -55,7 +65,7 @@ libgenQuery = (query, field, msg) ->
     if n == 0
       msg.send 'No results found :('
       return
-    msg.send (displayResult result for result in data).join "\n"
+    msg.send displayResult result for result in data
   "Request transmitted, waiting for results."
 
 module.exports = (robot) ->
